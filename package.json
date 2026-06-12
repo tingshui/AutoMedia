@@ -1,0 +1,10 @@
+{
+  "name": "automedia",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "node scripts/serve.mjs",
+    "verify:m0": "node scripts/verify-m0.mjs"
+  }
+}

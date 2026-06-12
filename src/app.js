@@ -24,6 +24,27 @@ const viewLabels = {
   styleManager: ["Style Manager", "我的视频风格管理"],
 };
 
+const routeByView = {
+  home: "#/home",
+  editor: "#/editor",
+  publishing: "#/publishing",
+  styleManager: "#/styles",
+};
+
+const viewByRoute = {
+  "#/home": "home",
+  "#/editor": "editor",
+  "#/publishing": "publishing",
+  "#/styles": "styleManager",
+};
+
+const activeViewMarker = {
+  home: "home",
+  editor: "editor",
+  publishing: "publishing",
+  styleManager: "styles",
+};
+
 function openModal(id) {
   const modal = document.querySelector(`#${id}`);
   modal.classList.add("active");
@@ -42,7 +63,18 @@ function showToast(message) {
   window.setTimeout(() => toast.classList.remove("active"), 3200);
 }
 
-function setActiveView(viewName) {
+function normalizeRoute() {
+  const hash = window.location.hash || "#/home";
+  if (!viewByRoute[hash]) {
+    window.location.hash = "#/home";
+    return "home";
+  }
+  return viewByRoute[hash];
+}
+
+function setActiveView(viewName, options = {}) {
+  const { updateRoute = true } = options;
+
   Object.values(views).forEach((view) => view.classList.remove("active"));
   views[viewName].classList.add("active");
 
@@ -55,6 +87,7 @@ function setActiveView(viewName) {
   appShell.classList.toggle("is-editor", viewName === "editor");
   appShell.classList.toggle("home-mode", viewName === "home");
   appShell.classList.toggle("style-mode", viewName === "styleManager");
+  appShell.dataset.activeView = activeViewMarker[viewName];
   currentSection.textContent = viewLabels[viewName][0];
   pageTitleInput.value = viewLabels[viewName][1];
 
@@ -64,6 +97,10 @@ function setActiveView(viewName) {
   } else {
     editStepDropdown.classList.remove("open");
     editorNav.setAttribute("aria-expanded", "false");
+  }
+
+  if (updateRoute && window.location.hash !== routeByView[viewName]) {
+    window.location.hash = routeByView[viewName];
   }
 }
 
@@ -195,3 +232,10 @@ document.addEventListener("keydown", (event) => {
     });
   }
 });
+
+window.addEventListener("hashchange", () => {
+  setActiveView(normalizeRoute(), { updateRoute: false });
+});
+
+setActiveView(normalizeRoute(), { updateRoute: !window.location.hash });
+window.__automediaReady = true;

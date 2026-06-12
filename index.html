@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="src/styles.css" />
   </head>
   <body>
-    <div class="app-shell home-mode">
+    <div class="app-shell home-mode" data-active-view="home">
       <aside class="sidebar" aria-label="AutoMedia navigation">
         <button class="sidebar-toggle" id="sidebarToggle" type="button" title="展开或收起侧边栏">◀</button>
 
@@ -20,12 +20,12 @@
         </div>
 
         <nav class="module-nav">
-          <button class="module-button active" type="button" data-view="home">
+          <button class="module-button active" type="button" data-view="home" data-testid="nav-home">
             <span class="nav-icon">⌂</span>
             <span class="sidebar-text">主页</span>
           </button>
 
-          <button class="module-button" type="button" id="editorNav" data-view="editor" aria-expanded="false">
+          <button class="module-button" type="button" id="editorNav" data-view="editor" data-testid="nav-editor" aria-expanded="false">
             <span class="nav-icon">✂</span>
             <span class="sidebar-text">视频剪辑</span>
             <span class="dropdown-caret sidebar-text">▸</span>
@@ -37,7 +37,7 @@
             <label><input class="edit-step-check" type="checkbox" checked /> 套用最近剪辑风格</label>
           </div>
 
-          <button class="module-button" type="button" data-view="publishing">
+          <button class="module-button" type="button" data-view="publishing" data-testid="nav-publishing">
             <span class="nav-icon">⇧</span>
             <span class="sidebar-text">视频发布</span>
           </button>
@@ -81,7 +81,7 @@
 
         <section class="view active" id="homeView" aria-label="AutoMedia home">
           <div class="home-grid">
-            <section class="home-panel recent-panel">
+            <section class="home-panel recent-panel" data-testid="home-recent">
               <div class="section-header">
                 <div>
                   <p class="panel-kicker">Recent</p>
@@ -90,7 +90,7 @@
                 <button class="secondary-button" type="button">查看全部</button>
               </div>
               <div class="recent-video-grid">
-                <button class="recent-card" type="button" data-open-editor>
+                <button class="recent-card" type="button" data-open-editor data-testid="recent-card">
                   <span class="recent-thumb thumb-a"></span>
                   <strong>ADHD 教育实验 vlog 01</strong>
                   <small>上次编辑到 00:18 · 草稿</small>
@@ -108,14 +108,14 @@
               </div>
             </section>
 
-            <section class="home-panel new-video-panel">
+            <section class="home-panel new-video-panel" data-testid="home-new-video">
               <p class="panel-kicker">Create</p>
               <h2>制作新视频</h2>
               <p>选择素材和剪辑风格后，AutoMedia 会进入剪辑页面，并按你选择的步骤开始准备 timeline。</p>
               <button class="primary-button large-button" type="button" id="openNewVideo">制作新视频</button>
             </section>
 
-            <section class="home-panel style-management-panel">
+            <section class="home-panel style-management-panel" data-testid="home-style-management">
               <div class="section-header">
                 <div>
                   <p class="panel-kicker">Styles</p>
@@ -130,7 +130,7 @@
               </div>
             </section>
 
-            <section class="home-panel insight-panel">
+            <section class="home-panel insight-panel" data-testid="home-platform-analytics">
               <p class="panel-kicker">Platform Analytics</p>
               <h2>平台分析</h2>
               <div class="metric-row">
@@ -140,7 +140,7 @@
               </div>
             </section>
 
-            <section class="home-panel insight-panel">
+            <section class="home-panel insight-panel" data-testid="home-comments">
               <p class="panel-kicker">Comments</p>
               <h2>留言回复</h2>
               <div class="metric-row">
