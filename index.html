@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AutoMedia Demo</title>
+    <link rel="stylesheet" href="src/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell home-mode">
+      <aside class="sidebar" aria-label="AutoMedia navigation">
+        <button class="sidebar-toggle" id="sidebarToggle" type="button" title="展开或收起侧边栏">◀</button>
+
+        <div class="brand">
+          <div class="brand-mark">AM</div>
+          <div class="sidebar-text">
+            <strong>AutoMedia</strong>
+            <span>Editing agent</span>
+          </div>
+        </div>
+
+        <nav class="module-nav">
+          <button class="module-button active" type="button" data-view="home">
+            <span class="nav-icon">⌂</span>
+            <span class="sidebar-text">主页</span>
+          </button>
+
+          <button class="module-button" type="button" id="editorNav" data-view="editor" aria-expanded="false">
+            <span class="nav-icon">✂</span>
+            <span class="sidebar-text">视频剪辑</span>
+            <span class="dropdown-caret sidebar-text">▸</span>
+          </button>
+          <div class="edit-step-dropdown" id="editStepDropdown">
+            <label><input class="edit-step-check" type="checkbox" checked /> 按上传顺序放入 timeline</label>
+            <label><input class="edit-step-check" type="checkbox" checked /> 去气音、停顿、重复和口误</label>
+            <label><input class="edit-step-check" type="checkbox" checked /> 生成中文 + 英文字幕</label>
+            <label><input class="edit-step-check" type="checkbox" checked /> 套用最近剪辑风格</label>
+          </div>
+
+          <button class="module-button" type="button" data-view="publishing">
+            <span class="nav-icon">⇧</span>
+            <span class="sidebar-text">视频发布</span>
+          </button>
+        </nav>
+
+        <div class="style-memory">
+          <div class="panel-kicker">Style Memory</div>
+          <h2>最近剪辑规律</h2>
+          <dl>
+            <div>
+              <dt>切点节奏</dt>
+              <dd>每 2.8 秒一个重点</dd>
+            </div>
+            <div>
+              <dt>字幕</dt>
+              <dd>中文主字幕 + 英文小字</dd>
+            </div>
+            <div>
+              <dt>综艺效果</dt>
+              <dd>关键词处轻量强调</dd>
+            </div>
+          </dl>
+          <button class="ghost-button" type="button" id="openMemory">查看记忆文档</button>
+        </div>
+      </aside>
+
+      <main class="main-area">
+        <section class="topbar">
+          <div>
+            <p class="panel-kicker" id="currentSection">Home</p>
+            <input class="title-input" id="pageTitleInput" value="AutoMedia 工作台" aria-label="Video name" />
+          </div>
+          <div class="topbar-actions">
+            <button class="icon-button editor-only" type="button" title="撤销">↶</button>
+            <button class="icon-button editor-only" type="button" title="重做">↷</button>
+            <button class="primary-button editor-only" type="button" id="runAutoEdit">开始自动剪辑</button>
+            <button class="secondary-button editor-only" type="button">导出</button>
+            <button class="secondary-button editor-only" type="button">保存</button>
+          </div>
+        </section>
+
+        <section class="view active" id="homeView" aria-label="AutoMedia home">
+          <div class="home-grid">
+            <section class="home-panel recent-panel">
+              <div class="section-header">
+                <div>
+                  <p class="panel-kicker">Recent</p>
+                  <h2>最近编辑的视频</h2>
+                </div>
+                <button class="secondary-button" type="button">查看全部</button>
+              </div>
+              <div class="recent-video-grid">
+                <button class="recent-card" type="button" data-open-editor>
+                  <span class="recent-thumb thumb-a"></span>
+                  <strong>ADHD 教育实验 vlog 01</strong>
+                  <small>上次编辑到 00:18 · 草稿</small>
+                </button>
+                <button class="recent-card" type="button" data-open-editor>
+                  <span class="recent-thumb thumb-b"></span>
+                  <strong>AI 家庭 workflow 复盘</strong>
+                  <small>字幕待确认 · 草稿</small>
+                </button>
+                <button class="recent-card" type="button" data-open-editor>
+                  <span class="recent-thumb thumb-c"></span>
+                  <strong>读书笔记短视频</strong>
+                  <small>封面待选择 · 草稿</small>
+                </button>
+              </div>
+            </section>
+
+            <section class="home-panel new-video-panel">
+              <p class="panel-kicker">Create</p>
+              <h2>制作新视频</h2>
+              <p>选择素材和剪辑风格后，AutoMedia 会进入剪辑页面，并按你选择的步骤开始准备 timeline。</p>
+              <button class="primary-button large-button" type="button" id="openNewVideo">制作新视频</button>
+            </section>
+
+            <section class="home-panel style-management-panel">
+              <div class="section-header">
+                <div>
+                  <p class="panel-kicker">Styles</p>
+                  <h2>我的视频风格管理</h2>
+                </div>
+                <button class="secondary-button" type="button" id="openStyleManager">进入管理</button>
+              </div>
+              <div class="style-mini-list">
+                <span>严肃</span>
+                <span>日常</span>
+                <span>幽默</span>
+              </div>
+            </section>
+
+            <section class="home-panel insight-panel">
+              <p class="panel-kicker">Platform Analytics</p>
+              <h2>平台分析</h2>
+              <div class="metric-row">
+                <span><strong>12.8k</strong> 小红书浏览</span>
+                <span><strong>68%</strong> Bilibili 完播率</span>
+                <span><strong>3</strong> 高表现标题模式</span>
+              </div>
+            </section>
+
+            <section class="home-panel insight-panel">
+              <p class="panel-kicker">Comments</p>
+              <h2>留言回复</h2>
+              <div class="metric-row">
+                <span><strong>24</strong> 待回复问题</span>
+                <span><strong>8</strong> 合作/咨询</span>
+                <span><strong>5</strong> 需要人工判断</span>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="editorView" aria-label="Video editor demo">
+          <div class="workspace-grid">
+            <section class="canvas-column">
+              <div class="video-stage">
+                <div class="stage-toolbar">
+                  <span>00:00:18.24</span>
+                  <span>1080 × 1920 · 9:16</span>
+                </div>
+                <div class="phone-preview" aria-label="Current video preview">
+                  <div class="video-image">
+                    <div class="subject-card">
+                      <span class="tag">AI 教育实验</span>
+                      <strong>今天这个方法真的改变了我和孩子的对话方式</strong>
+                    </div>
+                    <div class="floating-effect effect-one">重点来了</div>
+                    <div class="floating-effect effect-two">pop</div>
+                    <div class="subtitle-cn">我发现，孩子不是不配合</div>
+                    <div class="subtitle-en">I realized it was not resistance.</div>
+                  </div>
+                </div>
+                <div class="transport">
+                  <button class="icon-button" type="button" title="上一帧">‹</button>
+                  <button class="play-button" type="button" title="播放">▶</button>
+                  <button class="icon-button" type="button" title="下一帧">›</button>
+                  <div class="audio-meter" aria-label="audio meter">
+                    <span style="height: 35%"></span>
+                    <span style="height: 62%"></span>
+                    <span style="height: 45%"></span>
+                    <span style="height: 78%"></span>
+                    <span style="height: 54%"></span>
+                    <span style="height: 32%"></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="resize-divider" id="timelineDivider" role="separator" aria-label="调整视频和 timeline 比例"></div>
+
+              <section class="timeline-panel">
+                <div class="timeline-header">
+                  <div>
+                    <p class="panel-kicker">Timeline</p>
+                    <h2>自动剪辑结果可点击修改</h2>
+                  </div>
+                  <div class="timeline-tools">
+                    <button class="icon-button" type="button" title="剪刀">✂</button>
+                    <button class="icon-button" type="button" title="吸附">⌘</button>
+                    <button class="icon-button" type="button" title="缩放">＋</button>
+                  </div>
+                </div>
+                <div class="time-ruler">
+                  <span>00:00</span>
+                  <span>00:10</span>
+                  <span>00:20</span>
+                  <span>00:30</span>
+                  <span>00:40</span>
+                </div>
+                <div class="timeline-scroll">
+                  <div class="timeline">
+                    <div class="playhead"></div>
+                    <div class="track">
+                      <span class="track-label">Video</span>
+                      <button class="clip video-clip wide" type="button">Intro hook.mp4</button>
+                      <button class="clip video-clip" type="button">方法说明.mov</button>
+                      <button class="clip video-clip short" type="button">结尾 CTA</button>
+                      <button class="clip video-clip wide" type="button">补充案例.mov</button>
+                    </div>
+                    <div class="track">
+                      <span class="track-label">Audio</span>
+                      <button class="clip audio-clip wide" type="button">Clean voice</button>
+                      <button class="clip music-clip" type="button">轻快背景乐 -18dB</button>
+                      <button class="clip audio-clip wide" type="button">Voice tail</button>
+                    </div>
+                    <div class="track">
+                      <span class="track-label">Subtitles</span>
+                      <button class="clip subtitle-clip" type="button">中英字幕 01</button>
+                      <button class="clip subtitle-clip wide" type="button">关键词高亮</button>
+                      <button class="clip subtitle-clip" type="button">字幕 03</button>
+                    </div>
+                    <div class="track">
+                      <span class="track-label">Effects</span>
+                      <button class="clip effect-clip short" type="button">Zoom</button>
+                      <button class="clip effect-clip" type="button">Pop label</button>
+                      <button class="clip effect-clip short" type="button">Frame</button>
+                      <button class="clip effect-clip" type="button">Transition</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </section>
+
+            <aside class="tool-panel" aria-label="Dynamic editing tools">
+              <div class="tab-strip edit-tabs" role="tablist">
+                <button class="tab active" type="button" data-tab="videos">添加视频</button>
+                <button class="tab" type="button" data-tab="effects">特效</button>
+                <button class="tab" type="button" data-tab="audio">音效</button>
+                <button class="tab" type="button" data-tab="subtitles">字幕</button>
+                <button class="tab" type="button" data-tab="backgroundMusic">背景音</button>
+                <button class="tab" type="button" data-tab="textTools">文本</button>
+                <button class="tab" type="button" data-tab="stickers">贴纸</button>
+                <button class="tab" type="button" data-tab="transitions">转场</button>
+              </div>
+
+              <div class="tab-content active" id="videos">
+                <div class="panel-heading">
+                  <p class="panel-kicker">Assets</p>
+                  <h2>相关视频</h2>
+                </div>
+                <div class="asset-list">
+                  <button class="asset-card" type="button">
+                    <span class="thumb thumb-one"></span>
+                    <span><strong>01 开头 hook</strong><small>00:12 · 已加入</small></span>
+                  </button>
+                  <button class="asset-card" type="button">
+                    <span class="thumb thumb-two"></span>
+                    <span><strong>02 方法解释</strong><small>02:18 · 可裁剪</small></span>
+                  </button>
+                  <button class="asset-card" type="button">
+                    <span class="thumb thumb-three"></span>
+                    <span><strong>03 生活片段</strong><small>00:48 · 推荐插入</small></span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="tab-content" id="effects">
+                <div class="panel-heading">
+                  <p class="panel-kicker">Effects</p>
+                  <h2>基于风格记忆推荐</h2>
+                </div>
+                <div class="effect-grid">
+                  <button type="button">关键词弹出</button>
+                  <button type="button">轻微推近</button>
+                  <button type="button">白色描边 frame</button>
+                  <button type="button">综艺标签</button>
+                  <button type="button">转场闪白</button>
+                  <button type="button">重点暂停 0.4s</button>
+                </div>
+              </div>
+
+              <div class="tab-content" id="audio">
+                <div class="panel-heading">
+                  <p class="panel-kicker">Audio</p>
+                  <h2>音频清理与音效</h2>
+                </div>
+                <div class="slider-group">
+                  <label>去气音强度 <input type="range" min="0" max="100" value="72" /></label>
+                  <label>停顿删除 <input type="range" min="0" max="100" value="64" /></label>
+                  <label>背景乐音量 <input type="range" min="0" max="100" value="38" /></label>
+                </div>
+                <div class="sound-list">
+                  <button type="button">pop.wav</button>
+                  <button type="button">soft whoosh.wav</button>
+                  <button type="button">highlight ding.wav</button>
+                </div>
+              </div>
+
+              <div class="tab-content" id="subtitles">
+                <div class="panel-heading">
+                  <p class="panel-kicker">Subtitles</p>
+                  <h2>手动编辑字幕</h2>
+                </div>
+                <div class="subtitle-options">
+                  <label><input name="subtitleMode" type="radio" /> 中文</label>
+                  <label><input name="subtitleMode" type="radio" /> English</label>
+                  <label><input name="subtitleMode" type="radio" checked /> 中文 + English</label>
+                </div>
+                <div class="caption-list">
+                  <label>
+                    <span>00:13.2</span>
+                    <textarea>我发现，孩子不是不配合</textarea>
+                  </label>
+                  <label>
+                    <span>00:15.8</span>
+                    <textarea>而是任务的摩擦太大</textarea>
+                  </label>
+                </div>
+              </div>
+
+              <div class="tab-content" id="backgroundMusic">
+                <div class="panel-heading">
+                  <p class="panel-kicker">Music</p>
+                  <h2>背景音</h2>
+                </div>
+                <div class="sound-list">
+                  <button type="button">日常轻快 piano · -18dB</button>
+                  <button type="button">知识分享 lo-fi · -20dB</button>
+                  <button type="button">温和 vlog guitar · -22dB</button>
+                </div>
+              </div>
+
+              <div class="tab-content" id="textTools">
+                <div class="panel-heading">
+                  <p class="panel-kicker">Text</p>
+                  <h2>文本</h2>
+                </div>
+                <div class="effect-grid">
+                  <button type="button">标题卡</button>
+                  <button type="button">关键词强调</button>
+                  <button type="button">步骤编号</button>
+                  <button type="button">结尾 CTA</button>
+                </div>
+              </div>
+
+              <div class="tab-content" id="stickers">
+                <div class="panel-heading">
+                  <p class="panel-kicker">Stickers</p>
+                  <h2>贴纸</h2>
+                </div>
+                <div class="effect-grid">
+                  <button type="button">重点来了</button>
+                  <button type="button">思考气泡</button>
+                  <button type="button">箭头标注</button>
+                  <button type="button">轻量表情</button>
+                </div>
+              </div>
+
+              <div class="tab-content" id="transitions">
+                <div class="panel-heading">
+                  <p class="panel-kicker">Transitions</p>
+                  <h2>转场</h2>
+                </div>
+                <div class="effect-grid">
+                  <button type="button">轻微推近</button>
+                  <button type="button">闪白</button>
+                  <button type="button">快速横移</button>
+                  <button type="button">自然淡入</button>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="view" id="publishingView" aria-label="Video publishing demo">
+          <div class="publishing-layout">
+            <section class="publish-workspace">
+              <div class="publish-tabs tab-strip" role="tablist">
+                <button class="tab active" type="button" data-tab="titleRecommend">标题推荐</button>
+                <button class="tab" type="button" data-tab="coverDesign">封面设计</button>
+                <button class="tab" type="button" data-tab="platformSelect">平台选择</button>
+                <button class="tab" type="button" data-tab="schedulePublish">定时发布</button>
+              </div>
+
+              <div class="tab-content active" id="titleRecommend">
+                <div class="publish-section-header">
+                  <div>
+                    <p class="panel-kicker">Title</p>
+                    <h2>标题推荐</h2>
+                  </div>
+                  <button class="secondary-button" type="button">重新生成</button>
+                </div>
+                <div class="title-board">
+                  <button class="title-option selected-title" type="button">
+                    <strong>孩子不配合时，我换了一个 AI 实验方法</strong>
+                    <span>小红书语气，强调生活场景和方法变化。</span>
+                  </button>
+                  <button class="title-option" type="button">
+                    <strong>ADHD 孩子的任务启动，关键不是催</strong>
+                    <span>教育内容语气，适合 Bilibili 和 YouTube。</span>
+                  </button>
+                  <button class="title-option" type="button">
+                    <strong>一个让我少吼 80% 的家庭 AI workflow</strong>
+                    <span>强 hook，适合短视频平台测试。</span>
+                  </button>
+                </div>
+              </div>
+              <div class="tab-content" id="coverDesign">
+                <div class="publish-section-header">
+                  <div>
+                    <p class="panel-kicker">Cover</p>
+                    <h2>封面设计与比例微调</h2>
+                  </div>
+                  <button class="secondary-button" type="button">从当前帧生成</button>
+                </div>
+                <div class="cover-design-grid">
+                  <div class="master-cover">
+                    <span>Master Cover</span>
+                    <strong>孩子不配合？先降低任务摩擦</strong>
+                    <small>整体封面图，后续按平台自动裁切。</small>
+                  </div>
+                  <div class="cover-controls">
+                    <label>缩放 <input type="range" min="0" max="100" value="58" /></label>
+                    <label>横向位置 <input type="range" min="0" max="100" value="47" /></label>
+                    <label>纵向位置 <input type="range" min="0" max="100" value="42" /></label>
+                    <label>标题字号 <input type="range" min="0" max="100" value="64" /></label>
+                  </div>
+                </div>
+                <div class="platform-cover-grid">
+                  <div class="ratio-card">
+                    <span>小红书 3:4</span>
+                    <div class="ratio-preview vertical"></div>
+                  </div>
+                  <div class="ratio-card">
+                    <span>Bilibili 16:10</span>
+                    <div class="ratio-preview horizontal"></div>
+                  </div>
+                  <div class="ratio-card">
+                    <span>YouTube 16:9</span>
+                    <div class="ratio-preview wide-ratio"></div>
+                  </div>
+                  <div class="ratio-card">
+                    <span>抖音 9:16</span>
+                    <div class="ratio-preview story"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="tab-content" id="platformSelect">
+                <div class="publish-section-header">
+                  <div>
+                    <p class="panel-kicker">Platforms</p>
+                    <h2>平台选择</h2>
+                  </div>
+                  <span class="status-pill">已选 2 个平台</span>
+                </div>
+                <div class="platform-grid">
+                  <label class="platform-card selected"><input type="checkbox" checked /> 小红书 <span>封面 3:4 · 话题标签 · 生活方式语气</span></label>
+                  <label class="platform-card selected"><input type="checkbox" checked /> Bilibili <span>横版封面 · 分区 · 简介</span></label>
+                  <label class="platform-card"><input type="checkbox" /> YouTube <span>16:9 thumbnail · description · tags</span></label>
+                  <label class="platform-card"><input type="checkbox" /> 抖音 <span>9:16 封面 · 热点标签 · 短标题</span></label>
+                </div>
+              </div>
+              <div class="tab-content" id="schedulePublish">
+                <div class="publish-section-header">
+                  <div>
+                    <p class="panel-kicker">Schedule</p>
+                    <h2>定时发布</h2>
+                  </div>
+                  <button class="primary-button" type="button">确认排期</button>
+                </div>
+                <div class="schedule-list">
+                  <div class="schedule-row">
+                    <span class="platform-dot red"></span>
+                    <strong>小红书</strong>
+                    <label>发布时间 <input type="datetime-local" value="2026-06-12T20:30" /></label>
+                    <span class="status-pill">封面已适配</span>
+                  </div>
+                  <div class="schedule-row">
+                    <span class="platform-dot blue"></span>
+                    <strong>Bilibili</strong>
+                    <label>发布时间 <input type="datetime-local" value="2026-06-13T09:00" /></label>
+                    <span class="status-pill">标题已选择</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <aside class="publish-summary">
+              <p class="panel-kicker">Final Preview</p>
+              <h2>发布素材总览</h2>
+              <div class="cover-preview">
+                <span>Cover A</span>
+                <strong>孩子不配合？先降低任务摩擦</strong>
+              </div>
+              <div class="copy-preview">
+                <h3>孩子不配合时，我换了一个 AI 实验方法</h3>
+                <p>将根据平台生成不同长度的标题、描述、tag 和 hashtag。发布前仍保留最终确认。</p>
+                <div class="hashtag-row">
+                  <span>#AI教育</span>
+                  <span>#ADHD养育</span>
+                  <span>#家庭实验</span>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="view" id="styleManagerView" aria-label="Style manager">
+          <section class="style-manager">
+            <div class="section-header">
+              <div>
+                <p class="panel-kicker">Style Manager</p>
+                <h2>我的视频风格</h2>
+              </div>
+              <button class="primary-button" type="button" id="openNewStyle">添加新风格</button>
+            </div>
+            <div class="style-card-grid">
+              <button class="style-card" type="button" data-style="serious">
+                <strong>严肃</strong>
+                <span>创建时间：2026-05-18</span>
+                <small>观点型内容、低频特效、字幕清晰。</small>
+              </button>
+              <button class="style-card" type="button" data-style="daily">
+                <strong>日常</strong>
+                <span>创建时间：2026-05-27</span>
+                <small>生活片段、轻背景乐、柔和转场。</small>
+              </button>
+              <button class="style-card" type="button" data-style="funny">
+                <strong>幽默</strong>
+                <span>创建时间：2026-06-04</span>
+                <small>综艺标签、强调音效、快节奏切点。</small>
+              </button>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div class="modal-page" id="newVideoModal" aria-hidden="true">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <p class="panel-kicker">New Video</p>
+            <h2>制作新视频</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-modal="newVideoModal">×</button>
+        </div>
+        <div class="new-video-grid">
+          <section class="drop-zone">
+            <strong>把视频拖到这里</strong>
+            <span>或从 pull-down page 打开素材</span>
+            <button class="secondary-button" type="button">打开素材列表</button>
+          </section>
+          <section class="style-picker">
+            <h3>选择剪辑风格</h3>
+            <label><input name="newVideoStyle" type="radio" checked /> 严肃</label>
+            <label><input name="newVideoStyle" type="radio" /> 日常</label>
+            <label><input name="newVideoStyle" type="radio" /> 幽默</label>
+          </section>
+        </div>
+        <div class="modal-actions">
+          <button class="secondary-button" type="button" data-close-modal="newVideoModal">取消</button>
+          <button class="primary-button" type="button" id="confirmNewVideo">进入视频剪辑</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-page" id="styleDetailModal" aria-hidden="true">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <p class="panel-kicker">Style Detail</p>
+            <input class="style-name-input" value="严肃" aria-label="Style name" />
+          </div>
+          <button class="icon-button" type="button" data-close-modal="styleDetailModal">×</button>
+        </div>
+        <div class="style-rule-list">
+          <label><input type="checkbox" checked /> 平均切点 3.2 秒，减少过度 jump cut <button class="trash-button" type="button" data-delete-rule>⌫</button></label>
+          <label><input type="checkbox" checked /> 字幕使用白色主字 + 青绿色关键词 <button class="trash-button" type="button" data-delete-rule>⌫</button></label>
+          <label><input type="checkbox" checked /> 背景乐保持 -18dB 到 -22dB <button class="trash-button" type="button" data-delete-rule>⌫</button></label>
+          <label><input type="checkbox" /> 少用综艺 pop 标签 <button class="trash-button" type="button" data-delete-rule>⌫</button></label>
+        </div>
+        <div class="modal-actions">
+          <button class="secondary-button" type="button" data-close-modal="styleDetailModal">取消</button>
+          <button class="primary-button" type="button" data-close-modal="styleDetailModal">保存风格</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-page" id="newStyleModal" aria-hidden="true">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <p class="panel-kicker">New Style</p>
+            <h2>添加新风格</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-modal="newStyleModal">×</button>
+        </div>
+        <div class="new-video-grid">
+          <section class="drop-zone">
+            <strong>选择多个参考视频</strong>
+            <span>AutoMedia 会自动总结新风格。</span>
+            <button class="secondary-button" type="button">打开视频库</button>
+          </section>
+          <section class="style-rule-list preview-rules">
+            <label><input type="checkbox" checked /> 识别常用字幕位置</label>
+            <label><input type="checkbox" checked /> 总结背景音乐音量区间</label>
+            <label><input type="checkbox" checked /> 总结高频特效和触发点</label>
+          </section>
+        </div>
+        <div class="modal-actions">
+          <button class="secondary-button" type="button" data-close-modal="newStyleModal">取消</button>
+          <button class="primary-button" type="button" data-close-modal="newStyleModal">生成并保存</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-page" id="deleteConfirmModal" aria-hidden="true">
+      <div class="confirm-card">
+        <h2>确认删除这条风格规则？</h2>
+        <p>删除后这条规则将不再参与后续自动剪辑。</p>
+        <div class="modal-actions">
+          <button class="secondary-button" type="button" data-close-modal="deleteConfirmModal">取消</button>
+          <button class="primary-button danger" type="button" data-close-modal="deleteConfirmModal">确认删除</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-page" id="recutConfirmModal" aria-hidden="true">
+      <div class="confirm-card">
+        <h2>要不要重新开始自动剪辑？</h2>
+        <p>你取消了一个剪辑步骤。AutoMedia 可以按新的步骤重新生成 timeline。</p>
+        <div class="modal-actions">
+          <button class="secondary-button" type="button" data-close-modal="recutConfirmModal">暂时不用</button>
+          <button class="primary-button" type="button" id="confirmRecut">重新开始</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-page" id="memoryModal" aria-hidden="true">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <p class="panel-kicker">Memory Document</p>
+            <h2>editing_style_profile.md</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-modal="memoryModal">×</button>
+        </div>
+        <div class="memory-doc">
+          <section>
+            <h3>剪辑节奏</h3>
+            <p>最近 5 条视频平均每 2.8 秒出现一次重点切点。删除超过 0.7 秒的停顿，保留少量自然呼吸。</p>
+          </section>
+          <section>
+            <h3>字幕规则</h3>
+            <p>默认中文主字幕居中偏下，英文字幕更小，放在中文下方。关键词使用青绿色高亮。</p>
+          </section>
+          <section>
+            <h3>特效使用</h3>
+            <p>只在概念转折、方法名称、情绪反应点添加轻量综艺效果。</p>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast">自动剪辑已开始，正在按当前步骤重新生成 timeline。</div>
+
+    <script src="src/app.js"></script>
+  </body>
+</html>
