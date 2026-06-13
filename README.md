@@ -28,3 +28,14 @@ npm run verify:m0
 ```
 
 The M0 verifier starts the static server, launches headless Chrome, executes the app JavaScript, clicks the main user paths, and checks the route/view state.
+
+## Local Database
+
+M1 uses a local SQLite database at `data/automedia.sqlite3`.
+
+```bash
+npm run db:reset
+npm run verify:m1
+```
+
+`npm run db:reset` recreates the database from migrations and deterministic seed data. `npm run verify:m1` resets twice and checks schema coverage, primary keys, foreign keys, seed rows, catalog rows, fixture paths, JSON validity, reset idempotence, and M1/Future table boundaries.

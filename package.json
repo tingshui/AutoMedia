@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "serve": "node scripts/serve.mjs",
-    "verify:m0": "node scripts/verify-m0.mjs"
+    "verify:m0": "node scripts/verify-m0.mjs",
+    "db:reset": "python3 scripts/reset-db.py",
+    "verify:m1": "python3 scripts/verify-m1.py",
+    "report:m1": "python3 scripts/report-m1-performance.py"
   }
 }
