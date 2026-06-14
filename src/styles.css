@@ -600,6 +600,22 @@ h3 {
   background: #e5f7f4;
 }
 
+.empty-state,
+.loading-state,
+.error-state {
+  min-height: 110px;
+  padding: 18px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed #566070;
+  border-radius: 8px;
+}
+
+.error-state,
+.form-error {
+  color: #ffb3a8;
+}
+
 .metric-row span {
   color: #323946;
   background: #f1f4f8;
@@ -1376,10 +1392,36 @@ textarea {
   color: var(--muted);
 }
 
+.filename-field {
+  display: grid;
+  gap: 6px;
+  width: min(100%, 320px);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.filename-field input {
+  min-height: 38px;
+  padding: 0 10px;
+  color: var(--ink);
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
 .style-picker {
   display: grid;
   align-content: start;
   gap: 10px;
+}
+
+.form-error {
+  min-height: 20px;
+  margin: 10px 0 0;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .modal-actions {

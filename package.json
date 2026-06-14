@@ -8,6 +8,11 @@
     "verify:m0": "node scripts/verify-m0.mjs",
     "db:reset": "python3 scripts/reset-db.py",
     "verify:m1": "python3 scripts/verify-m1.py",
-    "report:m1": "python3 scripts/report-m1-performance.py"
+    "report:m1": "python3 scripts/report-m1-performance.py",
+    "verify:m2": "node scripts/verify-m2.mjs",
+    "import:jianying": "node scripts/import-jianying-style.mjs",
+    "verify:m3m6": "node scripts/verify-m3m6.mjs",
+    "calibrate:style": "node scripts/style-calibration/run-calibration.mjs",
+    "calibrate:style:screenshot": "node scripts/style-calibration/run-screenshot-calibration.mjs"
   }
 }

@@ -1,0 +1,19 @@
+{
+  "candidate_id": "candidate_c_round1",
+  "claim_layer": "plan_level_only",
+  "generated_from": ["style_jianying_3yue6_v1", "style_learning_v1_a_content_analysis", "style_learning_v1_asset_vocabulary"],
+  "actions": [
+    {"id":"c1_001","a_content_row_id":"a001","time_range_s":[4.0,7.0],"category":"effect","family":"framing","style_rule_id":"R2","reason":"opening hook needs an attention frame","expected_viewer_effect":"viewer recognizes the topic is starting"},
+    {"id":"c1_002","a_content_row_id":"a001","time_range_s":[6.0,7.0],"category":"audio_effect","family":"question","style_rule_id":"R3","reason":"opening contains confusion about child ownership/control","expected_viewer_effect":"light question beat"},
+    {"id":"c1_003","a_content_row_id":"a002","time_range_s":[20.0,21.0],"category":"audio_effect","family":"error_negative","style_rule_id":"R4","reason":"first parent impulse is framed as not ideal","expected_viewer_effect":"marks incorrect instinct"},
+    {"id":"c1_004","a_content_row_id":"a003","time_range_s":[33.0,34.5],"category":"audio_effect","family":"correct_success","style_rule_id":"R5","reason":"speaker reframes toward a better question","expected_viewer_effect":"small correction payoff"},
+    {"id":"c1_005","a_content_row_id":"a004","time_range_s":[48.0,52.0],"category":"effect","family":"tape_retro","style_rule_id":"R6","reason":"example/recalled child interaction begins","expected_viewer_effect":"signals example mode"},
+    {"id":"c1_006","a_content_row_id":"a005","time_range_s":[73.0,76.0],"category":"audio_effect","family":"tension","style_rule_id":"R7","reason":"hidden seriousness becomes explicit","expected_viewer_effect":"raises emotional stakes"},
+    {"id":"c1_007","a_content_row_id":"a007","time_range_s":[107.0,108.5],"category":"audio_effect","family":"sad_broken","style_rule_id":"R8","reason":"child's hurt is centered","expected_viewer_effect":"empathy beat"},
+    {"id":"c1_008","a_content_row_id":"a008","time_range_s":[124.0,126.0],"category":"effect","family":"spotlight","style_rule_id":"R9","reason":"practical guidance begins","expected_viewer_effect":"instruction feels important"},
+    {"id":"c1_009","a_content_row_id":"a009","time_range_s":[143.0,144.5],"category":"audio_effect","family":"correct_success","style_rule_id":"R10","reason":"actionable step lands","expected_viewer_effect":"success beat"},
+    {"id":"c1_010","a_content_row_id":"a010","time_range_s":[163.0,165.0],"category":"audio_effect","family":"idea_completion","style_rule_id":"R10","reason":"final takeaway resolves","expected_viewer_effect":"completion"},
+    {"id":"c1_011","a_content_row_id":"a001","time_range_s":[0.0,166.0],"category":"subtitle_observation","family":"continuous_sentence_level_orange","style_rule_id":"R12","reason":"talking-head explanation needs readable continuous captions","expected_viewer_effect":"followable with sound off"}
+  ]
+}
+

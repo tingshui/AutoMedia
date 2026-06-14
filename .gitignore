@@ -9,3 +9,5 @@ __pycache__/
 *.py[cod]
 data/*.sqlite3
 data/*.sqlite3-*
+data/style_calibration/reference_pair/*.mp4
+data/style_calibration/reference_pair/*.mov

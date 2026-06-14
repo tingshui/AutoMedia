@@ -1,0 +1,4 @@
+AutoMedia M3-M6 fixture video placeholder.
+This is a tiny deterministic fixture used by the local import verifier.
+The M5 implementation treats it as fixture media by extension and records
+placeholder metadata rather than probing real video frames.

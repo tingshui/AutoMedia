@@ -1,0 +1,14 @@
+{
+  "version": "style_learning_v1",
+  "scope": "candidate_generation_allowed_asset_vocabulary",
+  "effect_families": ["framing", "focus", "tape_retro", "glitch", "spotlight", "urgency"],
+  "audio_families": ["question", "error_negative", "correct_success", "shock", "tension", "sad_broken", "variety_beat", "idea_completion"],
+  "overlay_families": ["hook_marker", "realization_marker", "instruction_marker", "ending_marker"],
+  "subtitle_styles": ["continuous_sentence_level_orange"],
+  "forbidden": [
+    "exact_B_timestamp_copying",
+    "B_event_id_driven_generation",
+    "prior_screenshot_reconstruction_edl"
+  ]
+}
+

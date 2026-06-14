@@ -345,7 +345,7 @@ async function main() {
 
     await navigate(cdp, `${baseUrl}/`);
     await click(cdp, '[data-testid="recent-card"]');
-    await waitForCondition(cdp, "window.location.hash === '#/editor'", "recent card route");
+    await waitForCondition(cdp, "window.location.hash.startsWith('#/editor')", "recent card route");
     state = await readState(cdp);
     expectEditor(state, "C8 recent card opens Editor");
 
@@ -354,7 +354,7 @@ async function main() {
     state = await readState(cdp);
     assert(state.newVideoModalOpen, "C9 new video modal should open");
     await click(cdp, "#confirmNewVideo");
-    await waitForCondition(cdp, "window.location.hash === '#/editor'", "new video confirm route");
+    await waitForCondition(cdp, "window.location.hash.startsWith('#/editor')", "new video confirm route");
     state = await readState(cdp);
     expectEditor(state, "C9 new video confirm opens Editor");
     assert(state.toast.includes("已创建新视频"), "C9 new video confirm should show success toast");

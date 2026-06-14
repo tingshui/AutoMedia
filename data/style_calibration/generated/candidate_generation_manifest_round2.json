@@ -1,0 +1,23 @@
+{
+  "round": 2,
+  "candidate": "candidate_c_round2_edit_plan.json",
+  "style_doc": {
+    "path": "AutoMedia/data/style_calibration/generated/style_jianying_3yue6_v2.md",
+    "sha256": "a9f5360d10daa91998347e504cab435e8032158a2bd142706817c0122bb49c48"
+  },
+  "allowed_inputs": [
+    "AutoMedia/data/style_calibration/generated/style_jianying_3yue6_v2.md",
+    "AutoMedia/data/style_calibration/reports/style_learning_v1_a_content_analysis.md",
+    "AutoMedia/data/style_calibration/generated/style_learning_v1_asset_vocabulary.json"
+  ],
+  "forbidden_inputs_not_read_for_candidate_generation": [
+    "AutoMedia/data/style_calibration/reports/screenshot_performance_matrix.md",
+    "AutoMedia/data/style_calibration/reports/screenshot_performance_matrix.json",
+    "AutoMedia/data/style_calibration/reports/screenshot_calibration_report.md",
+    "AutoMedia/data/style_calibration/reports/screenshot_calibration_report.json",
+    "AutoMedia/data/style_calibration/generated/style_jianying_3yue6_screenshot_adjusted_edl.json",
+    "AutoMedia/data/style_calibration/generated/style_jianying_3yue6_calibration.json",
+    "AutoMedia/data/style_calibration/reports/style_learning_v1_performance_matrix.md"
+  ],
+  "isolation_statement": "Round 2 candidate actions were generated from frozen style v2, A content analysis, and allowed asset vocabulary only. B performance rows are used later for scoring, not candidate generation."
+}

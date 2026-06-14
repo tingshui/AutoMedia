@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 import os
+import shutil
 import sqlite3
 from pathlib import Path
 
@@ -9,6 +10,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DB_PATH = REPO_ROOT / "data" / "automedia.sqlite3"
 MIGRATION_PATH = REPO_ROOT / "db" / "migrations" / "001_initial_schema.sql"
 FIXTURE_DIR = REPO_ROOT / "fixtures" / "media"
+LIBRARY_DIR = REPO_ROOT / "data" / "library"
 NOW = "2026-06-13T00:00:00Z"
 
 
@@ -322,6 +324,8 @@ def reset_database(path: Path) -> None:
         conn.commit()
     finally:
         conn.close()
+    if LIBRARY_DIR.exists():
+        shutil.rmtree(LIBRARY_DIR)
 
 
 def main() -> None:
