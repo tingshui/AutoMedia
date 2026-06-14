@@ -47,6 +47,89 @@ const placeholderMetadata = {
   fps: 30,
   bitrate: 0,
 };
+const styleLearningV3 = {
+  id: "style_jianying_3yue6_v3",
+  name: "剪映导入-3月6日 v3",
+  summary: "基于 3月6日 剪映参考视频校准到 v3 的口播轻综艺风格，当前状态为待审核。",
+  styleDocPath: "data/style_calibration/generated/style_jianying_3yue6_v3.md",
+  comparisonReportPath: "data/style_calibration/reports/style_learning_v1_comparison_matrix.md",
+  comparisonScore: 99.07,
+  docSha256: "8db3776ef38897bb11e37fd9848f86b9efaefb845a4dd52546d9875f576705e1",
+  rules: [
+    [
+      "pacing",
+      "按 A 视频语义区间生成剪辑点，保留口播为主；2.5-3 分钟视频目标为 8-12 个保留语音段、10-14 个视觉效果、13-17 个音效、4-6 个短覆盖物。",
+      {
+        review_status: "needs_review",
+        source_round: 3,
+        semantic_zones_required: true,
+        retained_speech_segments: "8-12",
+        visual_effects: "10-14",
+        audio_effects: "13-17",
+        overlays: "4-6",
+      },
+    ],
+    [
+      "effect",
+      "开头冲突或不确定性使用视觉框选/聚焦；错误直觉用干扰或故障；例子段每 8-12 秒加入录像带/复古或聚焦；建议段使用聚光、紧迫或强调效果。",
+      {
+        review_status: "needs_review",
+        source_round: 3,
+        families: ["framing", "focus", "tape_retro", "glitch", "spotlight", "urgency"],
+        spacing_seconds: "8-12 in dense explanation or example zones",
+      },
+    ],
+    [
+      "audio",
+      "用音效标记内容功能：疑问对应 confusion，错误直觉对应 negative，正确重构对应 success，隐藏问题对应 tension/shock，孩子受伤对应 sad，结尾对应 idea/success/completion。",
+      {
+        review_status: "needs_review",
+        source_round: 3,
+        families: ["question", "error_negative", "correct_success", "shock", "tension", "sad_broken", "variety_beat", "idea_completion"],
+        no_comedy_near_child_hurt: true,
+      },
+    ],
+    [
+      "subtitle",
+      "全程使用连续句级中文字幕，按完整意思断句；除非平台风格另有要求，不使用逐字字幕。",
+      {
+        review_status: "needs_review",
+        source_round: 3,
+        caption_unit: "sentence",
+        continuity: "speaking_section",
+      },
+    ],
+    [
+      "sticker",
+      "覆盖物只放在 hook、强意识转折、操作指令和结尾 flourish 上，通常持续 1-4 秒，并且必须说明内容功能。",
+      {
+        review_status: "needs_review",
+        source_round: 3,
+        duration_seconds: "1-4",
+        allowed_functions: ["hook", "realization", "instruction", "final_flourish"],
+      },
+    ],
+    [
+      "text",
+      "每个新增 cue 都必须引用内容功能，避免只因为参考视频某个时间点有素材就照搬。",
+      {
+        review_status: "needs_review",
+        source_round: 3,
+        content_function_required: true,
+      },
+    ],
+    [
+      "pacing",
+      "禁止复用 B 视频的非零精确时间戳；若候选时间碰巧接近参考边界，移动到 A 视频支持的最近语义边界并记录原因。",
+      {
+        review_status: "needs_review",
+        source_round: 3,
+        anti_leak_rule: true,
+        exact_reference_timestamp_reuse: "forbidden",
+      },
+    ],
+  ],
+};
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -222,9 +305,91 @@ function assertSupportedVideo(path) {
   }
 }
 
+function upsertStyleLearningV3(db, options = {}) {
+  const timestamp = now();
+  const existingStyle = one(db, "SELECT id, deleted_at AS deletedAt FROM style_profiles WHERE id = ?", [styleLearningV3.id]);
+  if (existingStyle?.deletedAt && !options.forceRevive) {
+    return { skipped: true, reason: "style_soft_deleted" };
+  }
+  const activeRuleCount = one(
+    db,
+    "SELECT COUNT(*) AS count FROM style_rules WHERE style_profile_id = ? AND deleted_at IS NULL",
+    [styleLearningV3.id],
+  )?.count;
+  if (existingStyle && !existingStyle.deletedAt && activeRuleCount === styleLearningV3.rules.length) {
+    return { skipped: true, reason: "style_already_current" };
+  }
+
+  db.exec("BEGIN");
+  try {
+    db.prepare(
+      `
+      INSERT INTO style_profiles(id, name, summary, created_at, updated_at, deleted_at)
+      VALUES (?, ?, ?, ?, ?, NULL)
+      ON CONFLICT(id) DO UPDATE SET
+        name=excluded.name,
+        summary=excluded.summary,
+        updated_at=excluded.updated_at,
+        deleted_at=NULL
+      `,
+    ).run(styleLearningV3.id, styleLearningV3.name, styleLearningV3.summary, timestamp, timestamp);
+
+    for (const [index, [ruleType, ruleText, ruleJson]] of styleLearningV3.rules.entries()) {
+      const ruleId = `rule_${styleLearningV3.id}_${String(index + 1).padStart(2, "0")}`;
+      db.prepare(
+        `
+        INSERT INTO style_rules
+          (id, style_profile_id, rule_type, rule_text, rule_json, enabled, confidence, source, created_at, updated_at, deleted_at)
+        VALUES (?, ?, ?, ?, ?, 0, 0.82, 'performance_feedback', ?, ?, NULL)
+        ON CONFLICT(id) DO UPDATE SET
+          rule_type=excluded.rule_type,
+          rule_text=excluded.rule_text,
+          rule_json=excluded.rule_json,
+          enabled=0,
+          confidence=0.82,
+          source='performance_feedback',
+          updated_at=excluded.updated_at,
+          deleted_at=NULL
+        `,
+      ).run(
+        ruleId,
+        styleLearningV3.id,
+        ruleType,
+        ruleText,
+        encodeJson({
+          ...ruleJson,
+          source_artifact: styleLearningV3.styleDocPath,
+          comparison_report: styleLearningV3.comparisonReportPath,
+          comparison_score: styleLearningV3.comparisonScore,
+          style_doc_sha256: styleLearningV3.docSha256,
+          claim_layer: "plan_level_only_not_rendered_video",
+        }),
+        timestamp,
+        timestamp,
+      );
+    }
+    db.exec("COMMIT");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+  return { skipped: false };
+}
+
+function importStyleLearningV3(options = {}) {
+  const db = openDatabase();
+  try {
+    const result = upsertStyleLearningV3(db, options);
+    return { style: getStyle(styleLearningV3.id), ...result };
+  } finally {
+    db.close();
+  }
+}
+
 function getBootstrap() {
   const db = openDatabase();
   try {
+    upsertStyleLearningV3(db);
     const projects = normalizeRows(
       db.prepare(
         `
@@ -453,6 +618,7 @@ function createProject(input) {
 function listStyles() {
   const db = openDatabase();
   try {
+    upsertStyleLearningV3(db);
     return all(
       db,
       `
@@ -907,6 +1073,11 @@ async function handleApi(request, response, url) {
 
     if (request.method === "POST" && url.pathname === "/api/styles/import-jianying-first") {
       jsonResponse(response, 201, importJianyingStyle());
+      return true;
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/styles/import-jianying-v3") {
+      jsonResponse(response, 201, importStyleLearningV3());
       return true;
     }
 

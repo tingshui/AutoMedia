@@ -287,7 +287,7 @@ async function main() {
     await navigate(cdp, "#/home");
     const afterDeleteBootstrap = await api("/api/bootstrap");
     assert(!afterDeleteBootstrap.data.styles.some((style) => style.id === "style_jianying_3yue6"), "C7 deleted style should be absent from bootstrap");
-    assert(!(await evaluate(cdp, `document.body.innerText.includes('剪映导入-3月6日')`)), "C7 deleted style should not reappear in Home after startup");
+    assert(!(await evaluate(cdp, `window.__automediaState.styles.some((style) => style.id === 'style_jianying_3yue6')`)), "C7 deleted style should not reappear in Home after startup");
     const importAfterDelete = await api("/api/styles/import-jianying-first", { method: "POST", body: JSON.stringify({}) });
     assert(importAfterDelete.data.skipped === true && importAfterDelete.data.reason === "style_soft_deleted", "C7 automatic import should skip soft-deleted style");
     assert(withDb((db) => db.prepare("SELECT deleted_at FROM style_profiles WHERE id='style_jianying_3yue6'").get().deleted_at) !== null, "C7 skipped import should not revive style");

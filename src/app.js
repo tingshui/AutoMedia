@@ -458,12 +458,17 @@ async function refreshBootstrap() {
 }
 
 async function ensureJianyingStyle() {
-  if (appState.styles.some((style) => style.id === "style_jianying_3yue6")) {
-    return;
-  }
   try {
-    await apiJson("/api/styles/import-jianying-first", { method: "POST", body: JSON.stringify({}) });
-    await loadBootstrap();
+    let imported = false;
+    if (!appState.styles.some((style) => style.id === "style_jianying_3yue6")) {
+      await apiJson("/api/styles/import-jianying-first", { method: "POST", body: JSON.stringify({}) });
+      imported = true;
+    }
+    if (!appState.styles.some((style) => style.id === "style_jianying_3yue6_v3")) {
+      await apiJson("/api/styles/import-jianying-v3", { method: "POST", body: JSON.stringify({}) });
+      imported = true;
+    }
+    if (imported) await loadBootstrap();
   } catch (error) {
     showToast(`剪映风格导入跳过：${error.message}`);
   }
