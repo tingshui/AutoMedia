@@ -362,7 +362,7 @@ function upsertStyleLearningV3(db, options = {}) {
           comparison_report: styleLearningV3.comparisonReportPath,
           comparison_score: styleLearningV3.comparisonScore,
           style_doc_sha256: styleLearningV3.docSha256,
-          claim_layer: "plan_level_only_not_rendered_video",
+          claim_layer: "plan_level_only",
         }),
         timestamp,
         timestamp,
@@ -1028,6 +1028,228 @@ function createCatalogTimelineItem(projectId, input) {
   }
 }
 
+function getSelectedProjectStyle(db, projectId) {
+  return one(
+    db,
+    `
+    SELECT style_profiles.id, style_profiles.name, style_profiles.summary, project_style_profiles.created_at AS linkedAt
+    FROM project_style_profiles
+    JOIN style_profiles ON style_profiles.id = project_style_profiles.style_profile_id
+    WHERE project_style_profiles.project_id = ? AND style_profiles.deleted_at IS NULL
+    ORDER BY project_style_profiles.created_at DESC, project_style_profiles.applied_at DESC, style_profiles.id DESC
+    LIMIT 1
+    `,
+    [projectId],
+  );
+}
+
+function getEnabledStyleRules(db, styleId) {
+  return all(
+    db,
+    `
+    SELECT id, rule_type AS ruleType, rule_text AS ruleText, rule_json AS ruleJson
+    FROM style_rules
+    WHERE style_profile_id = ? AND enabled = 1 AND deleted_at IS NULL
+    ORDER BY id ASC
+    `,
+    [styleId],
+  ).map((rule) => ({ ...rule, rule: parseJson(rule.ruleJson), ruleJson: undefined }));
+}
+
+function getEnabledEditSteps(db, projectId) {
+  return all(
+    db,
+    `
+    SELECT step_key AS stepKey
+    FROM edit_steps
+    WHERE project_id = ? AND enabled = 1
+    ORDER BY sort_order ASC
+    `,
+    [projectId],
+  ).map((step) => step.stepKey);
+}
+
+function getPrimarySourceAsset(db, projectId) {
+  return one(
+    db,
+    `
+    SELECT source_assets.id, source_assets.duration_ms AS durationMs
+    FROM source_assets
+    JOIN project_assets ON project_assets.asset_id = source_assets.id
+    WHERE project_assets.project_id = ? AND project_assets.role = 'source' AND source_assets.asset_type = 'video'
+    ORDER BY project_assets.sort_order ASC, source_assets.created_at ASC
+    LIMIT 1
+    `,
+    [projectId],
+  );
+}
+
+function rulePreviewItemType(ruleType) {
+  if (ruleType === "audio") return "audio";
+  if (ruleType === "subtitle") return "subtitle";
+  if (ruleType === "text") return "text";
+  if (ruleType === "sticker") return "sticker";
+  if (ruleType === "transition") return "transition";
+  return "effect";
+}
+
+function rulePreviewLabel(rule) {
+  const suffix = rule.id.match(/_(\d+)$/)?.[1] || rule.id.slice(-2);
+  return `AutoEdit: ${rule.ruleType} ${suffix}`;
+}
+
+function buildAutoEditActions({ project, sourceAsset, durationMs, enabledSteps, rules }) {
+  const actions = [];
+  if (enabledSteps.includes("arrange_timeline")) {
+    actions.push({
+      actionKind: "arrange_timeline",
+      itemType: "video",
+      label: "AutoEdit: 原视频顺序铺入 timeline",
+      startMs: 0,
+      endMs: durationMs,
+      sourceAssetId: sourceAsset.id,
+      reason: "enabled edit step arrange_timeline",
+    });
+  }
+  if (enabledSteps.includes("clean_speech")) {
+    actions.push({
+      actionKind: "clean_speech_marker",
+      itemType: "text",
+      label: "AutoEdit: 清理气口/停顿 dry-run",
+      startMs: 0,
+      endMs: Math.min(3000, durationMs),
+      reason: "enabled edit step clean_speech",
+    });
+  }
+  if (enabledSteps.includes("subtitles_bilingual")) {
+    actions.push({
+      actionKind: "subtitle_dry_run",
+      itemType: "subtitle",
+      label: "AutoEdit: 句级字幕 dry-run",
+      startMs: 0,
+      endMs: durationMs,
+      reason: "enabled edit step subtitles_bilingual",
+    });
+  }
+  if (enabledSteps.includes("apply_style_profile")) {
+    for (const [index, rule] of rules.entries()) {
+      const startMs = Math.min(durationMs - 1, 6000 + index * 9000);
+      const endMs = Math.min(durationMs, startMs + 2000);
+      actions.push({
+        actionKind: "style_rule_preview",
+        itemType: rulePreviewItemType(rule.ruleType),
+        label: rulePreviewLabel(rule),
+        startMs,
+        endMs,
+        styleRuleId: rule.id,
+        styleRuleType: rule.ruleType,
+        reason: "enabled style rule",
+      });
+    }
+  }
+  return actions.map((action, index) => ({ ...action, actionIndex: index + 1, projectId: project.id }));
+}
+
+function insertGeneratedTimelineItem(db, projectId, jobId, action, timestamp) {
+  const trackId = getTrackId(db, projectId, action.itemType);
+  const itemId = `${jobId}_item_${String(action.actionIndex).padStart(2, "0")}`;
+  const properties = {
+    label: action.label,
+    text: action.label,
+    action_kind: action.actionKind,
+    style_rule_id: action.styleRuleId || null,
+    style_rule_type: action.styleRuleType || null,
+    reason: action.reason,
+    claim_layer: "plan_level_only",
+  };
+  db.prepare(
+    `
+    INSERT INTO timeline_items
+      (id, project_id, track_id, item_type, source_asset_id, start_ms, end_ms, duration_ms,
+       source_start_ms, source_end_ms, properties_json, generated_by_job_id, manual_override,
+       is_muted, is_locked, created_at, updated_at, deleted_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, 0, 0, 0, ?, ?, NULL)
+    `,
+  ).run(
+    itemId,
+    projectId,
+    trackId,
+    action.itemType,
+    action.sourceAssetId || null,
+    action.startMs,
+    action.endMs,
+    action.endMs - action.startMs,
+    encodeJson(properties),
+    jobId,
+    timestamp,
+    timestamp,
+  );
+  return itemId;
+}
+
+function runAutoEditDryRun(projectId) {
+  const db = openDatabase();
+  const timestamp = now();
+  try {
+    const project = requireProject(db, projectId);
+    const style = getSelectedProjectStyle(db, projectId);
+    if (!style) throw httpError(400, "当前项目没有选择可用风格。");
+    const rules = getEnabledStyleRules(db, style.id);
+    if (!rules.length) throw httpError(409, "当前风格没有已启用的规则，请先在风格管理里勾选规则。");
+    const sourceAsset = getPrimarySourceAsset(db, projectId);
+    if (!sourceAsset) throw httpError(400, "当前项目没有可用视频素材。");
+    const enabledSteps = getEnabledEditSteps(db, projectId);
+    const durationMs = Math.max(1, Number(project.duration_ms || sourceAsset.durationMs || 72000));
+    const actions = buildAutoEditActions({ project, sourceAsset, durationMs, enabledSteps, rules });
+    const jobId = uniqueId("job_auto_edit", projectId);
+    const input = {
+      project_id: projectId,
+      style_id: style.id,
+      style_name: style.name,
+      enabled_step_keys: enabledSteps,
+      enabled_rule_ids: rules.map((rule) => rule.id),
+      source_asset_id: sourceAsset.id,
+      source_duration_ms: durationMs,
+    };
+    db.exec("BEGIN");
+    try {
+      db.prepare(
+        `
+        UPDATE timeline_items
+        SET deleted_at = ?, updated_at = ?
+        WHERE project_id = ?
+          AND manual_override = 0
+          AND generated_by_job_id IN (
+            SELECT id FROM jobs WHERE project_id = ? AND job_type = 'auto_edit'
+          )
+          AND deleted_at IS NULL
+        `,
+      ).run(timestamp, timestamp, projectId, projectId);
+      db.prepare(
+        `
+        INSERT INTO jobs(id, project_id, job_type, status, input_json, output_json, error_json, created_at, updated_at)
+        VALUES (?, ?, 'auto_edit', 'succeeded', ?, NULL, NULL, ?, ?)
+        `,
+      ).run(jobId, projectId, encodeJson(input), timestamp, timestamp);
+      const timelineItemIds = actions.map((action) => insertGeneratedTimelineItem(db, projectId, jobId, action, timestamp));
+      const output = {
+        claim_layer: "plan_level_only",
+        actions: actions.map((action, index) => ({ ...action, timelineItemId: timelineItemIds[index] })),
+        timeline_item_ids: timelineItemIds,
+        warnings: ["dry_run_only", "no_render_output"],
+      };
+      db.prepare("UPDATE jobs SET output_json = ?, updated_at = ? WHERE id = ?").run(encodeJson(output), timestamp, jobId);
+      db.exec("COMMIT");
+      return { job: one(db, "SELECT * FROM jobs WHERE id = ?", [jobId]), generatedCount: timelineItemIds.length, project: getProject(projectId) };
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
+  } finally {
+    db.close();
+  }
+}
+
 function updateTimelineItem(itemId, input) {
   const db = openDatabase();
   const timestamp = now();
@@ -1152,6 +1374,10 @@ async function handleApi(request, response, url) {
         } else {
           jsonResponse(response, 201, createTimelineItem(projectId, input));
         }
+        return true;
+      }
+      if (request.method === "POST" && action === "auto-edit-dry-run") {
+        jsonResponse(response, 201, runAutoEditDryRun(projectId));
         return true;
       }
     }

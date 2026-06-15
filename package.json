@@ -12,6 +12,7 @@
     "verify:m2": "node scripts/verify-m2.mjs",
     "import:jianying": "node scripts/import-jianying-style.mjs",
     "verify:m3m6": "node scripts/verify-m3m6.mjs",
+    "verify:m7-style": "node scripts/verify-m7-style-auto-edit.mjs",
     "calibrate:style": "node scripts/style-calibration/run-calibration.mjs",
     "calibrate:style:screenshot": "node scripts/style-calibration/run-screenshot-calibration.mjs"
   }

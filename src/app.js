@@ -743,8 +743,19 @@ document.querySelector("#confirmRecut").addEventListener("click", () => {
   showToast("已按新的步骤重新开始自动剪辑。");
 });
 
-document.querySelector("#runAutoEdit").addEventListener("click", () => {
-  showToast("自动剪辑已开始，正在按当前步骤重新生成 timeline。");
+document.querySelector("#runAutoEdit").addEventListener("click", async () => {
+  if (!appState.currentProjectId) return;
+  try {
+    const payload = await apiJson(`/api/projects/${encodeURIComponent(appState.currentProjectId)}/auto-edit-dry-run`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+    appState.currentProject = payload.project;
+    renderProjectWorkspace();
+    showToast(`自动剪辑 dry-run 完成：生成 ${payload.generatedCount} 个 timeline 预览项。`);
+  } catch (error) {
+    showToast(error.message);
+  }
 });
 
 document.querySelector("#openMemory").addEventListener("click", () => {
