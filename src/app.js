@@ -39,6 +39,7 @@ const textToolList = document.querySelector("#textToolList");
 const stickerCatalog = document.querySelector("#stickerCatalog");
 const transitionCatalog = document.querySelector("#transitionCatalog");
 const subtitleEditor = document.querySelector("#subtitleEditor");
+const autoReviewList = document.querySelector("#autoReviewList");
 
 const appState = {
   projects: [],
@@ -413,6 +414,43 @@ function renderSubtitles() {
     });
 }
 
+function renderAutoReview() {
+  autoReviewList.innerHTML = "";
+  const review = appState.currentProject?.autoEditReview;
+  if (!review?.job || !review.actions.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "还没有 auto-edit dry-run。";
+    autoReviewList.append(empty);
+    return;
+  }
+  review.actions.forEach((action) => {
+    const card = document.createElement("article");
+    card.className = `review-card review-${action.reviewStatus}`;
+    card.dataset.reviewItemId = action.timelineItemId;
+    const styleRule = action.styleRuleId ? `<span>rule ${escapeHtml(action.styleRuleId)}</span>` : "<span>edit step</span>";
+    card.innerHTML = `
+      <div class="review-card-head">
+        <strong>${escapeHtml(action.label)}</strong>
+        <span class="status-pill">${escapeHtml(action.reviewStatus)}</span>
+      </div>
+      <div class="review-meta">
+        <span>${escapeHtml(action.actionKind || "")}</span>
+        <span>${escapeHtml(action.timelineItemId || "")}</span>
+        ${styleRule}
+        <span>${action.isTimelineActive ? "active" : "deleted"}</span>
+      </div>
+      <p>${escapeHtml(action.reason || "")}</p>
+      <div class="review-actions">
+        <button class="secondary-button" type="button" data-review-status="accepted">接受</button>
+        <button class="secondary-button" type="button" data-review-status="needs_change">需修改</button>
+        <button class="primary-button danger" type="button" data-review-status="rejected">删除</button>
+      </div>
+    `;
+    autoReviewList.append(card);
+  });
+}
+
 function applyLayout() {
   const layout = appState.currentProject?.layout;
   if (!layout) return;
@@ -434,6 +472,7 @@ function renderProjectWorkspace() {
   renderAssets();
   renderCatalogs();
   renderSubtitles();
+  renderAutoReview();
   applyLayout();
   syncEditSteps();
 }
@@ -605,6 +644,14 @@ async function updateTimelineItem(itemId, properties) {
 async function deleteTimelineItem(itemId) {
   appState.currentProject = await apiJson(`/api/timeline-items/${encodeURIComponent(itemId)}`, {
     method: "DELETE",
+  });
+  renderProjectWorkspace();
+}
+
+async function reviewTimelineItem(itemId, reviewStatus) {
+  appState.currentProject = await apiJson(`/api/timeline-items/${encodeURIComponent(itemId)}/review`, {
+    method: "PATCH",
+    body: JSON.stringify({ reviewStatus }),
   });
   renderProjectWorkspace();
 }
@@ -808,6 +855,18 @@ videoAssetList.addEventListener("click", async (event) => {
 });
 
 document.querySelector(".tool-panel").addEventListener("click", async (event) => {
+  const reviewButton = event.target.closest("[data-review-status]");
+  if (reviewButton) {
+    const card = event.target.closest("[data-review-item-id]");
+    if (!card) return;
+    try {
+      await reviewTimelineItem(card.dataset.reviewItemId, reviewButton.dataset.reviewStatus);
+      showToast("Review 已保存。");
+    } catch (error) {
+      showToast(error.message);
+    }
+    return;
+  }
   const catalog = event.target.closest("[data-catalog-type]");
   if (catalog) {
     await addTimelineItem({

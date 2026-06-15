@@ -975,7 +975,8 @@ h3 {
 .caption-list,
 .title-board,
 .schedule-list,
-.style-rule-list {
+.style-rule-list,
+.review-list {
   display: grid;
   gap: 10px;
 }
@@ -1037,6 +1038,51 @@ h3 {
 .title-option span {
   color: var(--muted);
   font-size: 13px;
+}
+
+.review-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  color: var(--ink);
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.review-card-head,
+.review-meta,
+.review-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.review-card-head {
+  justify-content: space-between;
+}
+
+.review-meta {
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.review-meta span {
+  padding: 3px 6px;
+  background: #f1f4f8;
+  border-radius: 6px;
+}
+
+.review-card p {
+  margin: 0;
+  color: #4b5360;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.review-actions {
+  justify-content: flex-end;
 }
 
 .slider-group label,

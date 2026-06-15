@@ -507,10 +507,69 @@ function getProject(projectId) {
       `,
       [projectId],
     );
-    return { project, layout, tracks, items, assets, steps, styles };
+    const autoEditReview = buildAutoEditReview(db, projectId);
+    return { project, layout, tracks, items, assets, steps, styles, autoEditReview };
   } finally {
     db.close();
   }
+}
+
+function getLatestAutoEditJob(db, projectId) {
+  return one(
+    db,
+    `
+    SELECT id, project_id AS projectId, status, input_json AS inputJson, output_json AS outputJson,
+           created_at AS createdAt, updated_at AS updatedAt
+    FROM jobs
+    WHERE project_id = ? AND job_type = 'auto_edit' AND status = 'succeeded'
+    ORDER BY created_at DESC, id DESC
+    LIMIT 1
+    `,
+    [projectId],
+  );
+}
+
+function buildAutoEditReview(db, projectId) {
+  const job = getLatestAutoEditJob(db, projectId);
+  if (!job) return { job: null, actions: [] };
+  const output = parseJson(job.outputJson, {});
+  const actions = Array.isArray(output.actions) ? output.actions : [];
+  return {
+    job: {
+      id: job.id,
+      projectId: job.projectId,
+      status: job.status,
+      createdAt: job.createdAt,
+      updatedAt: job.updatedAt,
+    },
+    actions: actions.map((action) => {
+      const item = action.timelineItemId
+        ? one(
+            db,
+            `
+            SELECT id, project_id AS projectId, generated_by_job_id AS generatedByJobId,
+                   manual_override AS manualOverride, deleted_at AS deletedAt, properties_json AS propertiesJson
+            FROM timeline_items
+            WHERE id = ? AND project_id = ? AND generated_by_job_id = ?
+            `,
+            [action.timelineItemId, projectId, job.id],
+          )
+        : null;
+      const properties = parseJson(item?.propertiesJson, {});
+      return {
+        actionIndex: action.actionIndex,
+        actionKind: action.actionKind,
+        label: action.label,
+        timelineItemId: action.timelineItemId,
+        styleRuleId: action.styleRuleId || "",
+        reason: action.reason || properties.reason || "",
+        reviewStatus: properties.review_status || "pending",
+        isTimelineActive: Boolean(item && !item.deletedAt),
+        manualOverride: item ? item.manualOverride : null,
+        claimLayer: properties.claim_layer || output.claim_layer || "",
+      };
+    }),
+  };
 }
 
 function createProject(input) {
@@ -1268,6 +1327,48 @@ function updateTimelineItem(itemId, input) {
   }
 }
 
+function reviewTimelineItem(itemId, input) {
+  if (!Object.prototype.hasOwnProperty.call(input || {}, "reviewStatus")) {
+    throw httpError(400, "Review status is required.");
+  }
+  const reviewStatus = String(input.reviewStatus || "");
+  if (!["accepted", "rejected", "needs_change"].includes(reviewStatus)) {
+    throw httpError(400, "Invalid review status");
+  }
+  const db = openDatabase();
+  const timestamp = now();
+  try {
+    const item = one(db, "SELECT * FROM timeline_items WHERE id = ?", [itemId]);
+    if (!item) throw httpError(404, "Timeline item not found");
+    if (!item.generated_by_job_id) throw httpError(400, "Only generated auto-edit items can be reviewed.");
+    const job = one(db, "SELECT * FROM jobs WHERE id = ? AND job_type = 'auto_edit' AND status = 'succeeded'", [item.generated_by_job_id]);
+    if (!job) throw httpError(400, "Only generated auto-edit items can be reviewed.");
+    const latestJob = getLatestAutoEditJob(db, item.project_id);
+    if (!latestJob || latestJob.id !== job.id) throw httpError(400, "Only latest auto-edit items can be reviewed.");
+    const output = parseJson(job.output_json, {});
+    const action = (Array.isArray(output.actions) ? output.actions : []).find((candidate) => candidate.timelineItemId === itemId);
+    if (!action) throw httpError(400, "Only latest auto-edit items can be reviewed.");
+    const properties = parseJson(item.properties_json, {});
+    if (!properties.action_kind || !properties.claim_layer) throw httpError(400, "Only latest auto-edit items can be reviewed.");
+    if (properties.review_status === "rejected" && reviewStatus !== "rejected") {
+      throw httpError(409, "Rejected review items cannot be changed in this version.");
+    }
+    const nextProperties = { ...properties, review_status: reviewStatus };
+    const deletedAt = reviewStatus === "rejected" ? timestamp : null;
+    const manualOverride = reviewStatus === "needs_change" ? 1 : 0;
+    db.prepare(
+      `
+      UPDATE timeline_items
+      SET properties_json = ?, deleted_at = ?, manual_override = ?, updated_at = ?
+      WHERE id = ?
+      `,
+    ).run(encodeJson(nextProperties), deletedAt, manualOverride, timestamp, itemId);
+    return getProject(item.project_id);
+  } finally {
+    db.close();
+  }
+}
+
 function deleteTimelineItem(itemId) {
   const db = openDatabase();
   const timestamp = now();
@@ -1378,6 +1479,16 @@ async function handleApi(request, response, url) {
       }
       if (request.method === "POST" && action === "auto-edit-dry-run") {
         jsonResponse(response, 201, runAutoEditDryRun(projectId));
+        return true;
+      }
+    }
+
+    const timelineItemReviewMatch = url.pathname.match(/^\/api\/timeline-items\/([^/]+)\/review$/);
+    if (timelineItemReviewMatch) {
+      const itemId = decodeURIComponent(timelineItemReviewMatch[1]);
+      if (request.method === "PATCH") {
+        const input = await readRequestJson(request);
+        jsonResponse(response, 200, reviewTimelineItem(itemId, input));
         return true;
       }
     }
