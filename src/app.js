@@ -40,6 +40,7 @@ const stickerCatalog = document.querySelector("#stickerCatalog");
 const transitionCatalog = document.querySelector("#transitionCatalog");
 const subtitleEditor = document.querySelector("#subtitleEditor");
 const autoReviewList = document.querySelector("#autoReviewList");
+const runSubtitleAudioPipelineButton = document.querySelector("#runSubtitleAudioPipeline");
 
 const appState = {
   projects: [],
@@ -800,6 +801,21 @@ document.querySelector("#runAutoEdit").addEventListener("click", async () => {
     appState.currentProject = payload.project;
     renderProjectWorkspace();
     showToast(`自动剪辑 dry-run 完成：生成 ${payload.generatedCount} 个 timeline 预览项。`);
+  } catch (error) {
+    showToast(error.message);
+  }
+});
+
+runSubtitleAudioPipelineButton.addEventListener("click", async () => {
+  if (!appState.currentProjectId) return;
+  try {
+    const payload = await apiJson(`/api/projects/${encodeURIComponent(appState.currentProjectId)}/subtitle-audio-fixture-run`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+    appState.currentProject = payload.project;
+    renderProjectWorkspace();
+    showToast(`字幕和停顿标记已生成：${payload.generatedSubtitleCount} 条字幕，${payload.generatedMarkerCount} 个停顿标记。`);
   } catch (error) {
     showToast(error.message);
   }

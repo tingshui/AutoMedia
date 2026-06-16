@@ -47,6 +47,41 @@ const placeholderMetadata = {
   fps: 30,
   bitrate: 0,
 };
+const m8aPipeline = "m8a_fixture_subtitle_audio";
+const m8aTranscript = [
+  {
+    text: "明明是两个孩子却说这是我一个人的问题",
+    language: "zh",
+    startMs: 0,
+    endMs: 5200,
+  },
+  {
+    text: "我想拆开看这个冲突里真正发生了什么",
+    language: "zh",
+    startMs: 5600,
+    endMs: 11200,
+  },
+  {
+    text: "先把情绪放慢一点再决定怎么回应",
+    language: "zh",
+    startMs: 12800,
+    endMs: 18500,
+  },
+];
+const m8aSilenceMarkers = [
+  {
+    text: "Pause: 00:05.20-00:05.60",
+    markerType: "silence_pause",
+    startMs: 5200,
+    endMs: 5600,
+  },
+  {
+    text: "Pause: 00:11.20-00:12.80",
+    markerType: "silence_pause",
+    startMs: 11200,
+    endMs: 12800,
+  },
+];
 const styleLearningV3 = {
   id: "style_jianying_3yue6_v3",
   name: "剪映导入-3月6日 v3",
@@ -1246,6 +1281,168 @@ function insertGeneratedTimelineItem(db, projectId, jobId, action, timestamp) {
   return itemId;
 }
 
+function subtitleSegmentIds(properties) {
+  const ids = [];
+  if (properties.subtitle_segment_id) ids.push(String(properties.subtitle_segment_id));
+  if (Array.isArray(properties.subtitle_segment_ids)) {
+    for (const id of properties.subtitle_segment_ids) ids.push(String(id));
+  }
+  return [...new Set(ids.filter(Boolean))];
+}
+
+function softDeleteLinkedSubtitleSegments(db, itemId, timestamp) {
+  const item = one(db, "SELECT properties_json FROM timeline_items WHERE id = ?", [itemId]);
+  const properties = parseJson(item?.properties_json, {});
+  const ids = subtitleSegmentIds(properties);
+  if (ids.length) {
+    for (const segmentId of ids) {
+      db.prepare("UPDATE subtitle_segments SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL").run(timestamp, timestamp, segmentId);
+    }
+    return;
+  }
+  db.prepare("UPDATE subtitle_segments SET deleted_at = ?, updated_at = ? WHERE timeline_item_id = ? AND deleted_at IS NULL").run(timestamp, timestamp, itemId);
+}
+
+function softDeleteSupersededM8aRows(db, projectId, timestamp) {
+  const rows = all(
+    db,
+    `
+    SELECT timeline_items.id, timeline_items.item_type AS itemType
+    FROM timeline_items
+    JOIN jobs ON jobs.id = timeline_items.generated_by_job_id
+    WHERE timeline_items.project_id = ?
+      AND timeline_items.deleted_at IS NULL
+      AND timeline_items.manual_override = 0
+      AND jobs.job_type = 'transcribe'
+      AND json_extract(jobs.input_json, '$.pipeline') = ?
+    `,
+    [projectId, m8aPipeline],
+  );
+  for (const row of rows) {
+    db.prepare("UPDATE timeline_items SET deleted_at = ?, updated_at = ? WHERE id = ?").run(timestamp, timestamp, row.id);
+    if (row.itemType === "subtitle") softDeleteLinkedSubtitleSegments(db, row.id, timestamp);
+  }
+}
+
+function insertM8aSubtitleItem(db, projectId, jobId, segment, index, timestamp) {
+  const trackId = getTrackId(db, projectId, "subtitle");
+  const itemId = `${jobId}_subtitle_${String(index + 1).padStart(2, "0")}`;
+  const segmentId = `${itemId}_segment_01`;
+  const properties = {
+    text: segment.text,
+    label: segment.text,
+    source: "m8_fixture_transcript",
+    pipeline: m8aPipeline,
+    claim_layer: "fixture_transcript_only",
+    subtitle_segment_id: segmentId,
+    subtitle_segment_ids: [segmentId],
+    language: segment.language,
+  };
+  db.prepare(
+    `
+    INSERT INTO timeline_items
+      (id, project_id, track_id, item_type, source_asset_id, start_ms, end_ms, duration_ms,
+       source_start_ms, source_end_ms, properties_json, generated_by_job_id, manual_override,
+       is_muted, is_locked, created_at, updated_at, deleted_at)
+    VALUES (?, ?, ?, 'subtitle', NULL, ?, ?, ?, NULL, NULL, ?, ?, 0, 0, 0, ?, ?, NULL)
+    `,
+  ).run(itemId, projectId, trackId, segment.startMs, segment.endMs, segment.endMs - segment.startMs, encodeJson(properties), jobId, timestamp, timestamp);
+  db.prepare(
+    `
+    INSERT INTO subtitle_segments
+      (id, project_id, timeline_item_id, language, text, start_ms, end_ms, style_json, created_at, updated_at, deleted_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+    `,
+  ).run(
+    segmentId,
+    projectId,
+    itemId,
+    segment.language,
+    segment.text,
+    segment.startMs,
+    segment.endMs,
+    encodeJson({ source: "m8_fixture_transcript", pipeline: m8aPipeline, claim_layer: "fixture_transcript_only" }),
+    timestamp,
+    timestamp,
+  );
+  return { itemId, segmentId };
+}
+
+function insertM8aSilenceMarkerItem(db, projectId, jobId, marker, index, timestamp) {
+  const trackId = getTrackId(db, projectId, "audio");
+  const itemId = `${jobId}_pause_${String(index + 1).padStart(2, "0")}`;
+  const properties = {
+    text: marker.text,
+    label: marker.text,
+    marker_type: marker.markerType,
+    pipeline: m8aPipeline,
+    claim_layer: "fixture_audio_cleanup_marker_only",
+    duration_ms: marker.endMs - marker.startMs,
+  };
+  db.prepare(
+    `
+    INSERT INTO timeline_items
+      (id, project_id, track_id, item_type, source_asset_id, start_ms, end_ms, duration_ms,
+       source_start_ms, source_end_ms, properties_json, generated_by_job_id, manual_override,
+       is_muted, is_locked, created_at, updated_at, deleted_at)
+    VALUES (?, ?, ?, 'audio', NULL, ?, ?, ?, NULL, NULL, ?, ?, 0, 0, 0, ?, ?, NULL)
+    `,
+  ).run(itemId, projectId, trackId, marker.startMs, marker.endMs, marker.endMs - marker.startMs, encodeJson(properties), jobId, timestamp, timestamp);
+  return itemId;
+}
+
+function runSubtitleAudioFixture(projectId) {
+  const db = openDatabase();
+  const timestamp = now();
+  try {
+    requireProject(db, projectId);
+    const sourceAsset = getPrimarySourceAsset(db, projectId);
+    if (!sourceAsset) throw httpError(409, "Primary source asset is required for subtitle/audio pipeline.");
+    const enabledSteps = getEnabledEditSteps(db, projectId);
+    if (!enabledSteps.includes("subtitles_bilingual")) throw httpError(409, "Subtitles edit step is disabled.");
+    const includeMarkers = enabledSteps.includes("clean_speech");
+    const jobId = uniqueId("job_transcribe", projectId);
+    const input = {
+      pipeline: m8aPipeline,
+      project_id: projectId,
+      source_asset_id: sourceAsset.id,
+      source_duration_ms: sourceAsset.durationMs,
+      enabled_step_keys: enabledSteps,
+    };
+    db.exec("BEGIN");
+    try {
+      softDeleteSupersededM8aRows(db, projectId, timestamp);
+      db.prepare(
+        `
+        INSERT INTO jobs(id, project_id, job_type, status, input_json, output_json, error_json, created_at, updated_at)
+        VALUES (?, ?, 'transcribe', 'succeeded', ?, NULL, NULL, ?, ?)
+        `,
+      ).run(jobId, projectId, encodeJson(input), timestamp, timestamp);
+      const subtitleRows = m8aTranscript.map((segment, index) => insertM8aSubtitleItem(db, projectId, jobId, segment, index, timestamp));
+      const markerItemIds = includeMarkers ? m8aSilenceMarkers.map((marker, index) => insertM8aSilenceMarkerItem(db, projectId, jobId, marker, index, timestamp)) : [];
+      const output = {
+        pipeline: m8aPipeline,
+        claim_layer: "fixture_transcript_only",
+        transcript_count: subtitleRows.length,
+        marker_count: markerItemIds.length,
+        generated_subtitle_item_ids: subtitleRows.map((row) => row.itemId),
+        generated_subtitle_segment_ids: subtitleRows.map((row) => row.segmentId),
+        generated_marker_item_ids: markerItemIds,
+        skipped: includeMarkers ? [] : ["clean_speech_disabled"],
+        warnings: ["fixture_only", "no_model_transcript", "no_render_output"],
+      };
+      db.prepare("UPDATE jobs SET output_json = ?, updated_at = ? WHERE id = ?").run(encodeJson(output), timestamp, jobId);
+      db.exec("COMMIT");
+      return { job: one(db, "SELECT * FROM jobs WHERE id = ?", [jobId]), generatedSubtitleCount: subtitleRows.length, generatedMarkerCount: markerItemIds.length, project: getProject(projectId) };
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
+  } finally {
+    db.close();
+  }
+}
+
 function runAutoEditDryRun(projectId) {
   const db = openDatabase();
   const timestamp = now();
@@ -1315,12 +1512,30 @@ function updateTimelineItem(itemId, input) {
   try {
     const item = one(db, "SELECT * FROM timeline_items WHERE id = ? AND deleted_at IS NULL", [itemId]);
     if (!item) throw httpError(404, "Timeline item not found");
-    const properties = input.properties && typeof input.properties === "object" ? input.properties : parseJson(item.properties_json);
-    db.prepare("UPDATE timeline_items SET properties_json = ?, manual_override = 1, updated_at = ? WHERE id = ?").run(
-      encodeJson(properties),
-      timestamp,
-      itemId,
-    );
+    const currentProperties = parseJson(item.properties_json);
+    const incomingProperties = input.properties && typeof input.properties === "object" ? input.properties : {};
+    const properties = { ...currentProperties, ...incomingProperties };
+    db.exec("BEGIN");
+    try {
+      db.prepare("UPDATE timeline_items SET properties_json = ?, manual_override = 1, updated_at = ? WHERE id = ?").run(
+        encodeJson(properties),
+        timestamp,
+        itemId,
+      );
+      if (item.item_type === "subtitle" && Object.prototype.hasOwnProperty.call(incomingProperties, "text")) {
+        for (const segmentId of subtitleSegmentIds(properties)) {
+          db.prepare("UPDATE subtitle_segments SET text = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL").run(
+            String(incomingProperties.text || ""),
+            timestamp,
+            segmentId,
+          );
+        }
+      }
+      db.exec("COMMIT");
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
     return getProject(item.project_id);
   } finally {
     db.close();
@@ -1375,7 +1590,15 @@ function deleteTimelineItem(itemId) {
   try {
     const item = one(db, "SELECT * FROM timeline_items WHERE id = ? AND deleted_at IS NULL", [itemId]);
     if (!item) throw httpError(404, "Timeline item not found");
-    db.prepare("UPDATE timeline_items SET deleted_at = ?, updated_at = ? WHERE id = ?").run(timestamp, timestamp, itemId);
+    db.exec("BEGIN");
+    try {
+      db.prepare("UPDATE timeline_items SET deleted_at = ?, updated_at = ? WHERE id = ?").run(timestamp, timestamp, itemId);
+      if (item.item_type === "subtitle") softDeleteLinkedSubtitleSegments(db, itemId, timestamp);
+      db.exec("COMMIT");
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
     return getProject(item.project_id);
   } finally {
     db.close();
@@ -1479,6 +1702,10 @@ async function handleApi(request, response, url) {
       }
       if (request.method === "POST" && action === "auto-edit-dry-run") {
         jsonResponse(response, 201, runAutoEditDryRun(projectId));
+        return true;
+      }
+      if (request.method === "POST" && action === "subtitle-audio-fixture-run") {
+        jsonResponse(response, 201, runSubtitleAudioFixture(projectId));
         return true;
       }
     }
