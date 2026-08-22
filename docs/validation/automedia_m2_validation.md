@@ -270,3 +270,61 @@ Independent API and DB spot audit, separate from `verify:m2`:
 ## Final Verdict
 
 pass_final
+
+## Fresh Independent Final Validation - 2026-06-16
+
+This section is a fresh final validation pass against the current AutoMedia HEAD observed during this run. It supersedes the earlier `pass_final` above because the repository advanced after the prior validation notes were written.
+
+Current HEAD observed:
+
+| Command | Observed Result |
+|---|---|
+| `git log --oneline -5` | Latest commit was `79ec012 [Claude] Complete M8a subtitle audio pipeline`, followed by M7/M8-related commits. This means the current tree is beyond the original M2-only implementation, but M2 gates still apply as regression requirements. |
+| `git status --short` before editing this validation file | Clean. No uncommitted source changes were present when the fresh validation commands were rerun. |
+
+Command evidence:
+
+| Command | Observed Result | Verdict |
+|---|---|---|
+| `npm run verify:m0` | PASS. Output ended with `AutoMedia M0 browser verification passed.` | PASS |
+| `npm run verify:m1` | FAIL. Output: `AutoMedia M1 verification failed: Unexpected data sidecar files: expected [], got ['style_calibration']`. Trace pointed to `assert_data_sidecars()` in `scripts/verify-m1.py`. | FAIL |
+| `npm run verify:m2` | PASS. Output ended with `AutoMedia M2 browser and database verification passed.` | PASS |
+| `npm run db:reset` after spot checks | PASS. Reset restored `/Users/qianying/Documents/AI_Workspace/AutoMedia/data/automedia.sqlite3`. | PASS |
+
+Direct source inspection:
+
+| Surface | Observed Evidence | Verdict |
+|---|---|---|
+| Home projects API | `scripts/serve.mjs` `getBootstrap()` selects `projects` with `deleted_at IS NULL AND status != 'archived'`, ordered by `updated_at DESC`, `LIMIT 12`. | PASS for Home active/recent filtering |
+| Style picker API | `getBootstrap()` selects `style_profiles` with `deleted_at IS NULL`. Current HEAD also auto-upserts `style_jianying_3yue6_v3` on bootstrap; this is DB-backed, not a hard-coded fallback. | PASS for DB-backed style options |
+| New Video create | `createProject()` validates filename and active style, then wraps inserts into `source_assets`, `projects`, `project_assets`, `project_layout_preferences`, `timeline_tracks`, `edit_steps`, and `project_style_profiles` in `BEGIN` / `COMMIT` with `ROLLBACK` on error. | PASS |
+| Editor route reload | `src/app.js` parses `#/editor/<project_id>`, sets `currentProjectId`, and calls `loadProject(projectId)` when the editor opens. `loadProject()` calls `/api/projects/<project_id>` and updates the topbar title from the returned DB project. | PASS by source/API audit; `verify:m2` also covers browser reload for expected M2 cases |
+
+Independent API and DB spot audit:
+
+| Check | Observed Output | Verdict |
+|---|---|---|
+| `curl -s http://127.0.0.1:4173/api/bootstrap` after reset | Returned 3 seed projects and DB-backed active styles. Current HEAD also returned `style_jianying_3yue6_v3` after bootstrap auto-upsert. | PASS for DB-backed data; note extra later-milestone style |
+| `curl -s http://127.0.0.1:4173/api/projects/project_reading_notes` | Returned project `project_reading_notes`, layout `520/260/0`, four tracks, one source asset, four enabled edit steps, and linked style `style_serious`. | PASS |
+| `curl -s -X POST /api/projects` with `{"filename":"final_validator_clip.mp4","styleId":"style_daily"}` | Returned new draft project `final_validator_clip` and placeholder metadata `{"fixture":true,"m2_placeholder":true,"codec":"placeholder","fps":30,"bitrate":0}`. | PASS |
+| SQLite count audit after create | `projects|4`, `source_assets|4`, `project_assets|4`, `project_style_profiles|4`, `edit_steps|16`, `timeline_tracks|16`, `project_layout_preferences|4`. | PASS |
+| SQLite bundle audit for `final_validator_clip` | Observed draft project, source asset `video|final_validator_clip.mp4`, exact M2 metadata JSON, style `style_daily`, steps `arrange_timeline`, `clean_speech`, `subtitles_bilingual`, `apply_style_profile`, tracks `video`, `audio`, `subtitles`, `effects`, layout `520|260|0`. | PASS |
+| Direct DB filter mutation then `/api/bootstrap` | After soft-deleting `project_adhd_vlog_01`, archiving `project_ai_family_workflow`, and soft-deleting `style_funny`, bootstrap returned only active projects and active styles. | PASS |
+| Blank filename create | Returned `HTTP/1.1 400 Bad Request` with `{"error":"请选择或输入素材文件名。"}`. | PASS |
+| Soft-deleted style create | Returned `HTTP/1.1 400 Bad Request` with `{"error":"选择的剪辑风格不可用。"}`. Relevant M2 table counts remained unchanged. | PASS |
+| `PRAGMA foreign_key_check` after invalid create attempts | No rows printed. | PASS |
+
+Validation limitations:
+
+- A targeted one-off browser probe for an active project outside the 12-row Home bootstrap list was blocked by sandbox local-network restrictions (`connect EPERM 127.0.0.1:<chromePort>`). An elevated rerun was rejected. This does not change the main M2 result because `verify:m2` already ran real headless Chrome for the agreed route/reload cases, and current source plus `/api/projects/:id` API audit shows the route is no longer limited to bootstrap-only project titles.
+
+Issues by severity:
+
+| Severity | Issue | Evidence | Impact |
+|---|---|---|---|
+| High | M1 regression gate fails in the current workspace. | `npm run verify:m1` failed with `Unexpected data sidecar files: expected [], got ['style_calibration']`. `find data -maxdepth 2` showed `data/style_calibration/...`; `git status --short --ignored data` showed ignored sidecar paths. | The user explicitly required `verify:m1` as part of final validation. M2 cannot receive a final pass verdict while this required regression command fails. |
+| Low | Current HEAD has later-milestone behavior that changes bootstrap style count. | `/api/bootstrap` auto-upserts and returns `style_jianying_3yue6_v3` in addition to seed styles. | Not an M2 functional failure because the style is DB-backed and active, but older M2 evidence that bootstrap returns exactly 3 styles is stale. |
+
+Fresh final verdict:
+
+fail_final

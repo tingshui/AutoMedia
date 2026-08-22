@@ -515,7 +515,7 @@ async function ensureJianyingStyle() {
 }
 
 async function loadProject(projectId) {
-  if (!projectId) return;
+  if (!projectId) return false;
   try {
     appState.currentProject = await apiJson(`/api/projects/${encodeURIComponent(projectId)}`);
     appState.currentProjectId = projectId;
@@ -523,8 +523,10 @@ async function loadProject(projectId) {
     pageTitleInput.value = appState.currentProject.project.title;
     renderProjectWorkspace();
     updateSaveState();
+    return true;
   } catch (error) {
     showToast(`无法读取项目：${error.message}`);
+    return false;
   }
 }
 
@@ -554,6 +556,10 @@ async function createNewVideo() {
     });
     appState.projects = [payload.project, ...appState.projects.filter((project) => project.id !== payload.project.id)];
     renderProjects();
+    const loaded = await loadProject(payload.project.id);
+    if (!loaded) {
+      throw new Error("项目已创建，但剪辑页面没有成功载入。请从最近项目重新打开。");
+    }
     closeModal("newVideoModal");
     setActiveView("editor", { projectId: payload.project.id });
     showToast("已创建新视频，素材和风格已载入剪辑页面。");
