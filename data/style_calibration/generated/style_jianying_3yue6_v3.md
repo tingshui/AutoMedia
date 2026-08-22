@@ -84,4 +84,3 @@ The cue spacing should feel active but not chaotic. If two cues stack on the sam
 ## Calibration Notes
 
 V3 keeps v2's semantic density rules and adds an explicit anti-leak timing rule after validation found exact non-zero B timestamp matches in round 2. This is a generalizable rule for future style-learning runs.
-

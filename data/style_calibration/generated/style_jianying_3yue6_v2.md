@@ -83,4 +83,3 @@ The cue spacing should feel active but not chaotic. If two cues stack on the sam
 ## Calibration Notes
 
 V2 adds general density and sequence rules because v1 produced too few events and missed the repeated tape/audio cue pattern. The changes are general rules, not timestamp instructions.
-

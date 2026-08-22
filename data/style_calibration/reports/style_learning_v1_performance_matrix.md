@@ -53,4 +53,3 @@ Expected row counts: video `10`, visual effects `12`, overlays `5`, audio effect
 | 41 | b_aud_014 | audio_effect | 151.30-154.20 | 想到好点子 | Final advice feels like a useful idea | 2.90 | medium | screenshot blue audio row |
 | 42 | b_aud_015 | audio_effect | 159.80-162.40 | 任务完成 | Ending gets completion cue | 2.60 | low | screenshot blue audio row, partial edge |
 | 43 | b_sub_001 | subtitle_observation | 0.00-145.00 | Continuous orange sentence-level subtitles | Talking-head explanation needs readable, nearly continuous sentence-level captions | 145.00 | observation_only | screenshot subtitle track |
-

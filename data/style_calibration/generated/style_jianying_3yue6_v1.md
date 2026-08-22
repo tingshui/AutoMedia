@@ -77,4 +77,3 @@ Use frequent but short emphasis events. A reasonable first target is one emphasi
 This v1 style is intentionally semantic. It was authored from B as reference evidence, but candidate generation must use the frozen style document, A content analysis, and asset vocabulary only.
 
 Known weakness: v1 may under-specify event density and the sequence of emotional beats, so round 1 may miss the reference's high-frequency audio cue pattern.
-

@@ -19,4 +19,3 @@ Transcript limitation: local Whisper is unavailable in the current workspace. Th
 | a008 | 75-84% | Parent-facing guidance begins: how to respond, how to ask, how to help children see boundaries. | conclusion_step | practical | alert/spotlight cue | de_timed_fallback_text_only |
 | a009 | 84-92% | A concrete next step is given, likely what to say or how to guide the child. | conclusion_step | useful, grounded | success/打卡 cue | de_timed_fallback_text_only |
 | a010 | 92-100% | Final takeaway: protect empathy/boundaries and avoid turning children into the problem. | conclusion | resolved | idea/completion cue and final focus | de_timed_fallback_text_only |
-
