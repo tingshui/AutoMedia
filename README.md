@@ -4,6 +4,10 @@ AutoMedia 是一个自动视频剪辑与多平台发布项目。目标是让用�
 
 这个项目独立于 `projects/ai-assistant`。
 
+## Project skills
+
+- [`skills/video-style-extraction/SKILL.md`](skills/video-style-extraction/SKILL.md): 从 raw/reference video 学习和校准可复用剪辑风格，并验证 candidate 没有复制答案时间线。
+
 ## 当前文档
 
 - [AutoMedia PRD](docs/prd.md)

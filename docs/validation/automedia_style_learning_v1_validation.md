@@ -13,7 +13,7 @@ Run the AutoMedia style extraction task using the new workflow:
 
 ## Workflows In Scope
 
-- `/Users/qianying/Documents/AI_Workspace/context-infra/rules/skills/workflow_video_style_extraction.md`
+- `AutoMedia/skills/video-style-extraction/SKILL.md`
 - `/Users/qianying/Documents/AI_Workspace/context-infra/rules/skills/workflow_independent_validation_agent.md`
 
 ## Scope
@@ -176,7 +176,7 @@ For each comparison dimension, the report must show expected from B, actual in C
 Reviewed independently on 2026-06-14 as plan review only. I inspected:
 
 - `/Users/qianying/Documents/AI_Workspace/context-infra/rules/skills/workflow_independent_validation_agent.md`
-- `/Users/qianying/Documents/AI_Workspace/context-infra/rules/skills/workflow_video_style_extraction.md`
+- `AutoMedia/skills/video-style-extraction/SKILL.md`
 - `/Users/qianying/Documents/AI_Workspace/AutoMedia/docs/style_calibration/style_extraction_lessons.md`
 - `/Users/qianying/Documents/AI_Workspace/AutoMedia/data/style_calibration/reports/screenshot_performance_matrix.md`
 - prior validation notes in `/Users/qianying/Documents/AI_Workspace/AutoMedia/docs/validation/automedia_style_calibration_validation.md`

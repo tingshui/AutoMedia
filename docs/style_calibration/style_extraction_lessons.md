@@ -4,7 +4,7 @@
 
 This file records project-specific lessons from AutoMedia style calibration experiments. The reusable workflow lives in:
 
-`/Users/qianying/Documents/AI_Workspace/context-infra/rules/skills/workflow_video_style_extraction.md`
+`../../skills/video-style-extraction/SKILL.md`
 
 This document is narrower: what we learned while trying to extract Angel's editing style from the 3月6日 Jianying reference.
 
